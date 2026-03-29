@@ -1,0 +1,42 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Voice Agent Router",
+        "description": "Configure your LLM-powered voice agent router.",
+        "data": {
+          "api_key": "API Key",
+          "model": "Model"
+        },
+        "data_description": {
+          "api_key": "API key for the LLM provider (e.g., OpenRouter, OpenAI).",
+          "model": "Model identifier to use for routing and responses."
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Voice Agent Router is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Voice Agent Router Options",
+        "data": {
+          "model": "Model",
+          "system_prompt": "System Prompt",
+          "temperature": "Temperature",
+          "max_tool_iterations": "Max Tool Iterations",
+          "enable_local_router": "Enable Local Router"
+        },
+        "data_description": {
+          "model": "Model identifier to use for routing and responses.",
+          "system_prompt": "System prompt sent to the LLM with each conversation turn.",
+          "temperature": "Sampling temperature (0.0 - 2.0). Lower is more deterministic.",
+          "max_tool_iterations": "Maximum number of tool-call rounds per conversation turn.",
+          "enable_local_router": "Use a local classifier to pre-route simple intents before calling the LLM."
+        }
+      }
+    }
+  }
+}
