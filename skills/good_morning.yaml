@@ -1,0 +1,10 @@
+name: good_morning
+description: "Morning briefing with weather and house status"
+trigger:
+  patterns: ["good morning", "morning briefing"]
+requires_llm: true
+system_prompt: |
+  Gather weather forecast, check for any open doors or windows,
+  report thermostat setting, and summarize any calendar events for today.
+  Keep the response conversational and under 30 seconds of speech.
+tools: [ha_get_state, ha_list_entities]

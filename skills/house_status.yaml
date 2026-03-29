@@ -1,0 +1,20 @@
+name: house_status
+description: "Quick house status check"
+trigger:
+  patterns: ["house status", "how's the house", "status of the house"]
+requires_llm: false
+response_template: |
+  {% set doors = [] %}
+  {% for eid, state in entity_states.items() if 'door' in eid and state.state == 'on' %}
+    {% set _ = doors.append(state.attributes.get('friendly_name', eid)) %}
+  {% endfor %}
+  {% set temp_entities = [] %}
+  {% for eid, state in entity_states.items() if eid.startswith('climate.') %}
+    {% set _ = temp_entities.append(state) %}
+  {% endfor %}
+  The house is {{ 'secure' if not doors else 'not fully secured' }}.
+  {% if doors %}Open: {{ doors | join(', ') }}.{% endif %}
+  {% if temp_entities %}Inside temperature is {{ temp_entities[0].attributes.get('current_temperature', 'unknown') }} degrees.{% endif %}
+entities:
+  - binary_sensor.*_door*
+  - climate.downstairs

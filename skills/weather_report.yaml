@@ -1,0 +1,10 @@
+name: weather_report
+description: "Current weather and forecast"
+trigger:
+  patterns: ["weather", "what's the weather", "weather forecast", "how's the weather"]
+requires_llm: true
+system_prompt: |
+  Check the weather entity states and provide a concise spoken weather report.
+  Include current temperature, conditions, and a brief forecast if available.
+  Keep it natural and under 15 seconds of speech.
+tools: [ha_get_state]
