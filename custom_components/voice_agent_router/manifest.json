@@ -5,7 +5,7 @@
   "documentation": "https://github.com/k5njm/voice-agent-router",
   "dependencies": ["conversation"],
   "after_dependencies": ["assist_pipeline", "intent"],
-  "requirements": ["openai>=1.0.0", "mcp>=1.0.0"],
+  "requirements": ["openai>=1.0.0", "mcp>=1.0.0", "voluptuous-openapi>=0.0.4"],
   "codeowners": ["@k5njm"],
   "iot_class": "cloud_polling",
   "integration_type": "service",
