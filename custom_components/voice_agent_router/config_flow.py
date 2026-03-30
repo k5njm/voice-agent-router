@@ -78,33 +78,32 @@ class VoiceAgentRouterOptionsFlow(OptionsFlow):
             return self.async_create_entry(title="", data=user_input)
 
         current = self.config_entry.options
+        data = self.config_entry.data
+
+        def opt(key, default):
+            return current.get(key, data.get(key, default))
+
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(
-                        CONF_MODEL,
-                        default=current.get(CONF_MODEL, DEFAULT_MODEL),
-                    ): str,
+                    vol.Optional(CONF_MODEL, default=opt(CONF_MODEL, DEFAULT_MODEL)): str,
                     vol.Optional(
                         CONF_SYSTEM_PROMPT,
-                        default=current.get(CONF_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT),
+                        default=opt(CONF_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT),
                     ): str,
                     vol.Optional(
-                        CONF_TEMPERATURE,
-                        default=current.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
+                        CONF_TEMPERATURE, default=opt(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
                     ): vol.Coerce(float),
                     vol.Optional(
                         CONF_MAX_TOOL_ITERATIONS,
-                        default=current.get(CONF_MAX_TOOL_ITERATIONS, DEFAULT_MAX_TOOL_ITERATIONS),
+                        default=opt(CONF_MAX_TOOL_ITERATIONS, DEFAULT_MAX_TOOL_ITERATIONS),
                     ): vol.All(vol.Coerce(int), vol.Range(min=1, max=50)),
                     vol.Optional(
-                        CONF_ENABLE_LOCAL_ROUTER,
-                        default=current.get(CONF_ENABLE_LOCAL_ROUTER, True),
+                        CONF_ENABLE_LOCAL_ROUTER, default=opt(CONF_ENABLE_LOCAL_ROUTER, True)
                     ): bool,
                     vol.Optional(
-                        CONF_SEND_BUG_REPORTS,
-                        default=current.get(CONF_SEND_BUG_REPORTS, False),
+                        CONF_SEND_BUG_REPORTS, default=opt(CONF_SEND_BUG_REPORTS, False)
                     ): bool,
                 }
             ),
