@@ -28,7 +28,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             def _init_sentry() -> None:
                 import sentry_sdk
 
-                sentry_sdk.init(dsn=SENTRY_DSN, traces_sample_rate=0.0)
+                def _before_send(event, hint):
+                    """Only forward events that originate from this integration."""
+                    for exc in event.get("exception", {}).get("values", []):
+                        frames = exc.get("stacktrace", {}).get("frames", [])
+                        if any("voice_agent_router" in (f.get("filename") or "") for f in frames):
+                            return event
+                    return None
+
+                sentry_sdk.init(
+                    dsn=SENTRY_DSN,
+                    traces_sample_rate=0.0,
+                    integrations=[],  # disable global hooks into aiohttp/asyncio/etc.
+                    before_send=_before_send,
+                )
 
             await hass.async_add_executor_job(_init_sentry)
             _LOGGER.info("Sentry error reporting enabled")
