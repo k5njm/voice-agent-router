@@ -145,8 +145,9 @@ class VoiceAgentRouterConversationEntity(
                 "Sorry, I encountered an internal error setting up the assistant.",
             )
 
+        llm_trace: list[dict] = []
         try:
-            await self._async_handle_chat_log(chat_log)
+            llm_trace = await self._async_handle_chat_log(chat_log)
         except openai.AuthenticationError as err:
             _LOGGER.error("OpenRouter authentication failed: %s", err)
             return _error_result(
@@ -190,6 +191,8 @@ class VoiceAgentRouterConversationEntity(
             text=text,
             route="llm",
             response=response_text,
+            iterations=len(llm_trace),
+            llm_trace=llm_trace,
             latency_ms=round((time.monotonic() - t_start) * 1000),
         )
         return result
@@ -202,8 +205,9 @@ class VoiceAgentRouterConversationEntity(
         """Read a config value from options first, then data, then default."""
         return self._config_entry.options.get(key, self._config_entry.data.get(key, default))
 
-    async def _async_handle_chat_log(self, chat_log: ChatLog) -> None:
-        """Run the OpenRouter tool-calling loop."""
+    async def _async_handle_chat_log(self, chat_log: ChatLog) -> list[dict]:
+        """Run the OpenRouter tool-calling loop. Returns per-iteration trace records."""
+        trace: list[dict] = []
         client = await self.hass.async_add_executor_job(
             lambda: openai.AsyncOpenAI(
                 api_key=self._config_entry.data[CONF_API_KEY],
@@ -223,6 +227,7 @@ class VoiceAgentRouterConversationEntity(
         tools = _convert_tools(chat_log.llm_api.tools) if chat_log.llm_api else []
 
         for _iteration in range(max_iterations):
+            iter_start = time.monotonic()
             _LOGGER.debug(
                 "OpenRouter iteration %d/%d, model=%s",
                 _iteration + 1,
@@ -237,6 +242,8 @@ class VoiceAgentRouterConversationEntity(
                 temperature=temperature,
             )
 
+            iter_ms = round((time.monotonic() - iter_start) * 1000)
+
             if not response.choices:
                 _LOGGER.warning(
                     "OpenRouter returned empty choices (model=%s, iteration=%d)",
@@ -250,6 +257,7 @@ class VoiceAgentRouterConversationEntity(
 
             # Build tool_calls list if the model requested any
             tool_calls_list = None
+            tool_calls_trace = []
             if message.tool_calls:
                 tool_calls_list = []
                 for tc in message.tool_calls:
@@ -270,6 +278,7 @@ class VoiceAgentRouterConversationEntity(
                             id=tc.id,
                         )
                     )
+                    tool_calls_trace.append({"tool": tc.function.name, "args": tool_args})
 
             assistant_content = conversation.AssistantContent(
                 agent_id=self.entity_id,
@@ -279,8 +288,22 @@ class VoiceAgentRouterConversationEntity(
 
             # Add to chat log -- this auto-executes HA tool calls
             new_content: list = []
+            tool_results_trace = []
             async for tool_result in chat_log.async_add_assistant_content(assistant_content):
                 new_content.append(tool_result)
+                tool_results_trace.append(
+                    {"tool": tool_result.tool_call_id, "result": tool_result.tool_result}
+                )
+
+            trace.append(
+                {
+                    "iteration": _iteration + 1,
+                    "latency_ms": iter_ms,
+                    "tool_calls": tool_calls_trace,
+                    "tool_results": tool_results_trace,
+                    "finish_reason": choice.finish_reason,
+                }
+            )
 
             if not chat_log.unresponded_tool_results:
                 break
@@ -295,6 +318,8 @@ class VoiceAgentRouterConversationEntity(
                         "content": json.dumps(result.tool_result),
                     }
                 )
+
+        return trace
 
     async def _execute_local(
         self,
