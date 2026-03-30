@@ -9,7 +9,6 @@ CONF_TEMPERATURE = "temperature"
 CONF_MAX_TOOL_ITERATIONS = "max_tool_iterations"
 CONF_ENABLE_LOCAL_ROUTER = "enable_local_router"
 CONF_LLM_HASS_API = "llm_hass_api"
-CONF_SEND_BUG_REPORTS = "send_bug_reports"
 CONF_SYSTEM_PROMPT_PRESET = "system_prompt_preset"
 
 PRESET_DEFAULT = "default"
@@ -31,7 +30,6 @@ SYSTEM_PROMPT_PRESETS: dict[str, str] = {
     ),
 }
 
-SENTRY_DSN = "https://6f0479f25c912b6c2e9e9d41772935e3@o4511130727088128.ingest.us.sentry.io/4511130768834560"
 
 DEFAULT_MODEL = "google/gemini-2.5-flash-preview"
 DEFAULT_TEMPERATURE = 0.7

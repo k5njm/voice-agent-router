@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 
 import openai
 import voluptuous_openapi
@@ -33,6 +34,7 @@ from .const import (
     SYSTEM_PROMPT_PRESETS,
 )
 from .entity_cache import EntityCache
+from .perf_log import PerfLogger
 from .router import IntentRouter
 
 _LOGGER = logging.getLogger(__name__)
@@ -68,6 +70,7 @@ class VoiceAgentRouterConversationEntity(
         self._entity_cache = entity_cache
         self._intent_router = IntentRouter(entity_cache)
         self._attr_unique_id = f"{config_entry.entry_id}_conversation"
+        self._perf_log: PerfLogger | None = None
 
     @property
     def supported_languages(self) -> list[str] | str:
@@ -77,11 +80,14 @@ class VoiceAgentRouterConversationEntity(
         """Register as a conversation agent."""
         await super().async_added_to_hass()
         conversation.async_set_agent(self.hass, self._config_entry, self)
+        self._perf_log = PerfLogger(self.hass.config.config_dir)
 
     async def async_will_remove_from_hass(self) -> None:
         """Unregister the conversation agent and tear down cache."""
         conversation.async_unset_agent(self.hass, self._config_entry)
         await self._entity_cache.async_teardown()
+        if self._perf_log:
+            self._perf_log.close()
         await super().async_will_remove_from_hass()
 
     def _get_system_prompt(self) -> str:
@@ -98,6 +104,7 @@ class VoiceAgentRouterConversationEntity(
     ) -> conversation.ConversationResult:
         """Handle an incoming voice/text message."""
         text = user_input.text
+        t_start = time.monotonic()
 
         # Try local fast-path routing
         enable_local = self._config_entry.options.get(CONF_ENABLE_LOCAL_ROUTER, True)
@@ -105,7 +112,16 @@ class VoiceAgentRouterConversationEntity(
             try:
                 action = await self._intent_router.route(text)
                 if action is not None:
-                    return await self._execute_local(user_input, action, chat_log)
+                    result = await self._execute_local(user_input, action, chat_log)
+                    self._write_perf_log(
+                        text=text,
+                        route="local",
+                        pattern=action.service,
+                        entity_id=action.entity_id,
+                        response=action.speech,
+                        latency_ms=round((time.monotonic() - t_start) * 1000),
+                    )
+                    return result
             except Exception:
                 _LOGGER.exception("Local intent router failed for text: '%s'", text)
                 # Fall through to cloud LLM
@@ -168,7 +184,19 @@ class VoiceAgentRouterConversationEntity(
                 "Sorry, something went wrong. Please try again.",
             )
 
-        return conversation.async_get_result_from_chat_log(user_input, chat_log)
+        result = conversation.async_get_result_from_chat_log(user_input, chat_log)
+        response_text = result.response.speech.get("plain", {}).get("speech", "")
+        self._write_perf_log(
+            text=text,
+            route="llm",
+            response=response_text,
+            latency_ms=round((time.monotonic() - t_start) * 1000),
+        )
+        return result
+
+    def _write_perf_log(self, **kwargs) -> None:
+        if self._perf_log:
+            self._perf_log.log(kwargs)
 
     def _get_config(self, key: str, default):
         """Read a config value from options first, then data, then default."""

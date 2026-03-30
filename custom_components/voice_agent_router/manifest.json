@@ -14,8 +14,7 @@
   "requirements": [
     "openai>=1.0.0",
     "mcp>=1.0.0",
-    "voluptuous-openapi>=0.0.4",
-    "sentry-sdk>=2.0.0"
+    "voluptuous-openapi>=0.0.4"
   ],
   "codeowners": [
     "@k5njm"
