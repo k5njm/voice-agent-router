@@ -14,3 +14,12 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: bash -c 'PYTHONPATH=. .venv/bin/pytest tests/ -q --tb=short'
+        language: system
+        pass_filenames: false
+        always_run: true
