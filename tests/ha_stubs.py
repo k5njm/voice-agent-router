@@ -136,3 +136,21 @@ def install() -> None:
     for name, stub in STUBS.items():
         if name not in sys.modules:
             sys.modules[name] = stub
+
+    # Wire child stubs as attributes on parents so that
+    # `from homeassistant.helpers import llm` resolves correctly
+    sys.modules["homeassistant"].helpers = sys.modules["homeassistant.helpers"]
+    sys.modules["homeassistant"].components = sys.modules["homeassistant.components"]
+    sys.modules["homeassistant"].config_entries = sys.modules["homeassistant.config_entries"]
+    sys.modules["homeassistant"].const = sys.modules["homeassistant.const"]
+    sys.modules["homeassistant"].core = sys.modules["homeassistant.core"]
+    sys.modules["homeassistant.helpers"].llm = sys.modules["homeassistant.helpers.llm"]
+    sys.modules["homeassistant.helpers"].event = sys.modules["homeassistant.helpers.event"]
+    sys.modules["homeassistant.helpers"].intent = sys.modules["homeassistant.helpers.intent"]
+    sys.modules["homeassistant.helpers"].template = sys.modules["homeassistant.helpers.template"]
+    sys.modules["homeassistant.helpers"].entity_platform = sys.modules[
+        "homeassistant.helpers.entity_platform"
+    ]
+    sys.modules["homeassistant.components"].conversation = sys.modules[
+        "homeassistant.components.conversation"
+    ]
