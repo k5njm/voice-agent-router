@@ -163,9 +163,8 @@ Error reporting is **opt-in and off by default** — the integration sends zero 
 
 To enable:
 
-1. Install `sentry-sdk` on your HA host: `pip install sentry-sdk`.
-2. Go to **Settings > Devices & Services > Voice Agent Router > Configure**.
-3. Toggle **Send Bug Reports** on.
+1. Go to **Settings > Devices & Services > Voice Agent Router > Configure**.
+2. Toggle **Send Bug Reports** on.
 
 When enabled, anonymous error reports are sent to the project maintainer's Sentry instance to help identify and fix bugs. No personal data or entity names are collected.
 

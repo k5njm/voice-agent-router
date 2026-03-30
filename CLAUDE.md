@@ -77,7 +77,7 @@ tests/ha_stubs.py     — sys.modules stubs replacing full HA install for unit t
 
 Opt-in via "Send Bug Reports" toggle in integration options. Off by default — zero telemetry
 unless the user explicitly enables it. DSN is hardcoded in `const.py` (points to maintainer's
-Sentry project). Requires `pip install sentry-sdk` on the HA host (not in `manifest.json`).
+Sentry project). `sentry-sdk` is included in `manifest.json` requirements.
 
 - Sentry org: `nick-mccarthy`
 - Sentry project: `voice-agent-router` (platform: python)

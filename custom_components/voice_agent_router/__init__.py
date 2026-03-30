@@ -20,7 +20,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {}
 
-    # Optional Sentry error reporting (off by default, requires sentry-sdk)
+    # Optional Sentry error reporting (off by default)
     send_reports = entry.options.get(CONF_SEND_BUG_REPORTS, False)
     if send_reports and SENTRY_DSN:
         try:
@@ -28,8 +28,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             sentry_sdk.init(dsn=SENTRY_DSN, traces_sample_rate=0.0)
             _LOGGER.info("Sentry error reporting enabled")
-        except ImportError:
-            _LOGGER.debug("sentry-sdk not installed, error reporting disabled")
         except Exception:
             _LOGGER.exception("Failed to initialize Sentry")
 
