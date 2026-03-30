@@ -41,6 +41,10 @@ class IntentRouter:
         """
         cleaned = text.strip().lower()
 
+        if len(cleaned) > 500:
+            _LOGGER.debug("Input too long for local routing (%d chars), skipping", len(cleaned))
+            return None
+
         for pattern_name, regex, handler_name in INTENT_PATTERNS:
             try:
                 match = regex.fullmatch(cleaned)

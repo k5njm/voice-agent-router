@@ -62,16 +62,21 @@ class EntityCache:
             )
             return
 
-        self._entities.clear()
-        self._name_tokens.clear()
-        self._token_index.clear()
+        entities: dict[str, State] = {}
+        name_tokens: dict[str, set[str]] = {}
+        token_index: dict[str, set[str]] = defaultdict(set)
 
         for state in all_states:
-            self._entities[state.entity_id] = state
+            entities[state.entity_id] = state
             tokens = self._extract_tokens(state)
-            self._name_tokens[state.entity_id] = tokens
+            name_tokens[state.entity_id] = tokens
             for token in tokens:
-                self._token_index[token].add(state.entity_id)
+                token_index[token].add(state.entity_id)
+
+        # Atomic swap — no window where callers see an empty cache
+        self._entities = entities
+        self._name_tokens = name_tokens
+        self._token_index = token_index
 
         _LOGGER.debug("Entity cache refreshed: %d entities", len(self._entities))
 

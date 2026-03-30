@@ -36,8 +36,8 @@ OPTIONS_SCHEMA = vol.Schema(
         vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): str,
         vol.Optional(CONF_SYSTEM_PROMPT, default=DEFAULT_SYSTEM_PROMPT): str,
         vol.Optional(CONF_TEMPERATURE, default=DEFAULT_TEMPERATURE): vol.Coerce(float),
-        vol.Optional(CONF_MAX_TOOL_ITERATIONS, default=DEFAULT_MAX_TOOL_ITERATIONS): vol.Coerce(
-            int
+        vol.Optional(CONF_MAX_TOOL_ITERATIONS, default=DEFAULT_MAX_TOOL_ITERATIONS): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=50)
         ),
         vol.Optional(CONF_ENABLE_LOCAL_ROUTER, default=True): bool,
         vol.Optional(CONF_SEND_BUG_REPORTS, default=False): bool,
@@ -100,7 +100,7 @@ class VoiceAgentRouterOptionsFlow(OptionsFlow):
                     vol.Optional(
                         CONF_MAX_TOOL_ITERATIONS,
                         default=current.get(CONF_MAX_TOOL_ITERATIONS, DEFAULT_MAX_TOOL_ITERATIONS),
-                    ): vol.Coerce(int),
+                    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=50)),
                     vol.Optional(
                         CONF_ENABLE_LOCAL_ROUTER,
                         default=current.get(CONF_ENABLE_LOCAL_ROUTER, True),

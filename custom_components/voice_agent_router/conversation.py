@@ -218,12 +218,12 @@ class VoiceAgentRouterConversationEntity(
                         tool_args = json.loads(tc.function.arguments)
                     except (json.JSONDecodeError, TypeError) as err:
                         _LOGGER.warning(
-                            "Malformed tool call arguments from LLM (tool=%s, id=%s): %s",
+                            "Malformed tool args from LLM (tool=%s, id=%s): %s — skipping",
                             tc.function.name,
                             tc.id,
                             err,
                         )
-                        tool_args = {}
+                        continue
                     tool_calls_list.append(
                         llm.ToolInput(
                             tool_name=tc.function.name,
