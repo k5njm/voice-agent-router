@@ -34,3 +34,28 @@ jobs:
         run: pytest tests/ -v
         env:
           PYTHONPATH: ${{ github.workspace }}
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read version from manifest
+        id: version
+        run: |
+          VERSION=$(python3 -c "import json; print(json.load(open('custom_components/voice_agent_router/manifest.json'))['version'])")
+          echo "version=v$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Tag and release if new version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.version.outputs.version }}"
+          if git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
+            echo "Tag $TAG already exists, skipping release."
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
