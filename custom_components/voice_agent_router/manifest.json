@@ -3,6 +3,7 @@
   "name": "Voice Agent Router",
   "version": "0.1.2",
   "documentation": "https://github.com/k5njm/voice-agent-router",
+  "issue_tracker": "https://github.com/k5njm/voice-agent-router/issues",
   "dependencies": ["conversation"],
   "after_dependencies": ["assist_pipeline", "intent"],
   "requirements": ["openai>=1.0.0", "mcp>=1.0.0", "voluptuous-openapi>=0.0.4", "sentry-sdk>=2.0.0"],
