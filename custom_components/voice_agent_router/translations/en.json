@@ -24,7 +24,8 @@
         "title": "Voice Agent Router Options",
         "data": {
           "model": "Model",
-          "system_prompt": "System Prompt",
+          "system_prompt_preset": "System Prompt Preset",
+          "system_prompt": "Custom System Prompt",
           "temperature": "Temperature",
           "max_tool_iterations": "Max Tool Iterations",
           "enable_local_router": "Enable Local Router",
@@ -32,7 +33,8 @@
         },
         "data_description": {
           "model": "OpenRouter model identifier (e.g., google/gemini-2.5-flash-preview).",
-          "system_prompt": "System prompt sent to the LLM with each conversation turn.",
+          "system_prompt_preset": "Choose a built-in personality, or select Custom to write your own.",
+          "system_prompt": "Only used when preset is set to Custom.",
           "temperature": "Sampling temperature (0.0 - 1.0). Lower is more deterministic.",
           "max_tool_iterations": "Maximum number of tool-call rounds per turn (1-50).",
           "enable_local_router": "Use regex fast-path to handle simple commands offline before calling the LLM.",

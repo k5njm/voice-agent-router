@@ -21,12 +21,16 @@ from .const import (
     CONF_MAX_TOOL_ITERATIONS,
     CONF_MODEL,
     CONF_SYSTEM_PROMPT,
+    CONF_SYSTEM_PROMPT_PRESET,
     CONF_TEMPERATURE,
     DEFAULT_MAX_TOOL_ITERATIONS,
     DEFAULT_MODEL,
     DEFAULT_SYSTEM_PROMPT,
     DEFAULT_TEMPERATURE,
     DOMAIN,
+    PRESET_CUSTOM,
+    PRESET_DEFAULT,
+    SYSTEM_PROMPT_PRESETS,
 )
 from .entity_cache import EntityCache
 from .router import IntentRouter
@@ -81,8 +85,11 @@ class VoiceAgentRouterConversationEntity(
         await super().async_will_remove_from_hass()
 
     def _get_system_prompt(self) -> str:
-        """Return the configured system prompt."""
-        return self._config_entry.options.get(CONF_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT)
+        """Return the active system prompt, resolving presets."""
+        preset = self._get_config(CONF_SYSTEM_PROMPT_PRESET, PRESET_DEFAULT)
+        if preset == PRESET_CUSTOM:
+            return self._get_config(CONF_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT)
+        return SYSTEM_PROMPT_PRESETS.get(preset, SYSTEM_PROMPT_PRESETS[PRESET_DEFAULT])
 
     async def _async_handle_message(
         self,
