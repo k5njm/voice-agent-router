@@ -163,19 +163,23 @@ class VoiceAgentRouterConversationEntity(
 
         return conversation.async_get_result_from_chat_log(user_input, chat_log)
 
+    def _get_config(self, key: str, default):
+        """Read a config value from options first, then data, then default."""
+        return self._config_entry.options.get(key, self._config_entry.data.get(key, default))
+
     async def _async_handle_chat_log(self, chat_log: ChatLog) -> None:
         """Run the OpenRouter tool-calling loop."""
-        client = openai.AsyncOpenAI(
-            api_key=self._config_entry.data[CONF_API_KEY],
-            base_url="https://openrouter.ai/api/v1",
-            timeout=30.0,
+        client = await self.hass.async_add_executor_job(
+            lambda: openai.AsyncOpenAI(
+                api_key=self._config_entry.data[CONF_API_KEY],
+                base_url="https://openrouter.ai/api/v1",
+                timeout=30.0,
+            )
         )
 
-        model = self._config_entry.options.get(CONF_MODEL, DEFAULT_MODEL)
-        temperature = self._config_entry.options.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
-        max_iterations = self._config_entry.options.get(
-            CONF_MAX_TOOL_ITERATIONS, DEFAULT_MAX_TOOL_ITERATIONS
-        )
+        model = self._get_config(CONF_MODEL, DEFAULT_MODEL)
+        temperature = self._get_config(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
+        max_iterations = self._get_config(CONF_MAX_TOOL_ITERATIONS, DEFAULT_MAX_TOOL_ITERATIONS)
 
         # Convert chat_log.content to OpenAI message format
         messages = _convert_chat_log_to_messages(chat_log)
