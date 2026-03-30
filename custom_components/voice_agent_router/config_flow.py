@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigFlow, OptionsFlow
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
@@ -36,9 +35,9 @@ OPTIONS_SCHEMA = vol.Schema(
         vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): str,
         vol.Optional(CONF_SYSTEM_PROMPT, default=DEFAULT_SYSTEM_PROMPT): str,
         vol.Optional(CONF_TEMPERATURE, default=DEFAULT_TEMPERATURE): vol.Coerce(float),
-        vol.Optional(
-            CONF_MAX_TOOL_ITERATIONS, default=DEFAULT_MAX_TOOL_ITERATIONS
-        ): vol.Coerce(int),
+        vol.Optional(CONF_MAX_TOOL_ITERATIONS, default=DEFAULT_MAX_TOOL_ITERATIONS): vol.Coerce(
+            int
+        ),
         vol.Optional(CONF_ENABLE_LOCAL_ROUTER, default=True): bool,
     }
 )
@@ -49,9 +48,7 @@ class VoiceAgentRouterConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step."""
         if user_input is not None:
             await self.async_set_unique_id(DOMAIN)
@@ -76,9 +73,7 @@ class VoiceAgentRouterOptionsFlow(OptionsFlow):
     def __init__(self, config_entry) -> None:
         self.config_entry = config_entry
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Manage the options."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
@@ -102,9 +97,7 @@ class VoiceAgentRouterOptionsFlow(OptionsFlow):
                     ): vol.Coerce(float),
                     vol.Optional(
                         CONF_MAX_TOOL_ITERATIONS,
-                        default=current.get(
-                            CONF_MAX_TOOL_ITERATIONS, DEFAULT_MAX_TOOL_ITERATIONS
-                        ),
+                        default=current.get(CONF_MAX_TOOL_ITERATIONS, DEFAULT_MAX_TOOL_ITERATIONS),
                     ): vol.Coerce(int),
                     vol.Optional(
                         CONF_ENABLE_LOCAL_ROUTER,

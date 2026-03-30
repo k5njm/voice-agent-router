@@ -25,9 +25,7 @@ class MCPAPI(llm.API):
         )
         self._manager = mcp_manager
 
-    async def async_get_api_instance(
-        self, llm_context: llm.LLMContext
-    ) -> llm.APIInstance:
+    async def async_get_api_instance(self, llm_context: llm.LLMContext) -> llm.APIInstance:
         """Build the API instance with all connected MCP tools."""
         return llm.APIInstance(
             api=self,

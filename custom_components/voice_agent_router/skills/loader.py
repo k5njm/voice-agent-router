@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 import yaml
 
@@ -15,6 +14,7 @@ _LOGGER = logging.getLogger(__name__)
 @dataclass
 class SkillDefinition:
     """A loaded skill definition."""
+
     name: str
     description: str
     trigger_patterns: list[str]

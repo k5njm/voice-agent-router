@@ -1,6 +1,6 @@
 # Voice Agent Router
 
-[![CI](https://github.com/OWNER/voice-agent-router/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/voice-agent-router/actions/workflows/ci.yml)
+[![CI](https://github.com/k5njm/voice-agent-router/actions/workflows/ci.yml/badge.svg)](https://github.com/k5njm/voice-agent-router/actions/workflows/ci.yml)
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
@@ -101,7 +101,7 @@ Skills with `requires_llm: false` return the `response_template` directly. Skill
 
 ```bash
 # Clone the repository
-git clone https://github.com/OWNER/voice-agent-router.git
+git clone https://github.com/k5njm/voice-agent-router.git
 cd voice-agent-router
 
 # Install in editable mode with test dependencies

@@ -7,7 +7,6 @@ import logging
 
 import openai
 import voluptuous_openapi
-
 from homeassistant.components import conversation
 from homeassistant.components.conversation import ChatLog
 from homeassistant.config_entries import ConfigEntry
@@ -45,9 +44,7 @@ async def async_setup_entry(
     await cache.async_setup()
     hass.data[DOMAIN][config_entry.entry_id]["entity_cache"] = cache
 
-    async_add_entities(
-        [VoiceAgentRouterConversationEntity(config_entry, cache)]
-    )
+    async_add_entities([VoiceAgentRouterConversationEntity(config_entry, cache)])
 
 
 class VoiceAgentRouterConversationEntity(

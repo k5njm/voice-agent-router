@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from custom_components.voice_agent_router.entity_cache import EntityCache
 from custom_components.voice_agent_router.router.intent_router import IntentRouter
-from custom_components.voice_agent_router.skills.loader import SkillLoader
 
 
 @pytest.fixture
@@ -26,17 +25,27 @@ def mock_hass():
         ("light.kitchen_lights", "Kitchen Lights", "off", {}),
         ("light.living_room", "Living Room Light", "on", {"brightness": 200}),
         ("switch.garage_door", "Garage Door Switch", "off", {}),
-        ("climate.downstairs", "Downstairs Thermostat", "heat", {
-            "current_temperature": 72,
-            "temperature": 70,
-            "unit_of_measurement": "\u00b0F",
-        }),
+        (
+            "climate.downstairs",
+            "Downstairs Thermostat",
+            "heat",
+            {
+                "current_temperature": 72,
+                "temperature": 70,
+                "unit_of_measurement": "\u00b0F",
+            },
+        ),
         ("lock.front_door", "Front Door Lock", "locked", {}),
         ("cover.bedroom_blinds", "Bedroom Blinds", "open", {}),
         ("scene.movie_night", "Movie Night", "scening", {}),
-        ("sensor.outdoor_temp", "Outdoor Temperature", "65", {
-            "unit_of_measurement": "\u00b0F",
-        }),
+        (
+            "sensor.outdoor_temp",
+            "Outdoor Temperature",
+            "65",
+            {
+                "unit_of_measurement": "\u00b0F",
+            },
+        ),
         ("binary_sensor.back_door", "Back Door", "on", {}),
     ]:
         mock_state = MagicMock()

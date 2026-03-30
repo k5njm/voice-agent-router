@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from custom_components.voice_agent_router.router.intent_router import IntentRouter, LocalAction
+from custom_components.voice_agent_router.router.intent_router import IntentRouter
 
 
 @pytest.mark.asyncio

@@ -16,11 +16,11 @@ _LOGGER = logging.getLogger(__name__)
 class LocalAction:
     """A fully-resolved HA service call ready for execution."""
 
-    domain: str          # "light", "switch", "climate", "lock", "cover", "scene"
-    service: str         # "turn_on", "turn_off", "set_temperature", etc.
-    entity_id: str       # resolved from cache
+    domain: str  # "light", "switch", "climate", "lock", "cover", "scene"
+    service: str  # "turn_on", "turn_off", "set_temperature", etc.
+    entity_id: str  # resolved from cache
     service_data: dict = field(default_factory=dict)
-    speech: str = ""     # response text for TTS
+    speech: str = ""  # response text for TTS
 
 
 class IntentRouter:

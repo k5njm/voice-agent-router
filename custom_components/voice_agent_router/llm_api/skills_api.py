@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.util.json import JsonObjectType
@@ -47,9 +45,7 @@ class SkillsAPI(llm.API):
         )
         self._loader = skill_loader
 
-    async def async_get_api_instance(
-        self, llm_context: llm.LLMContext
-    ) -> llm.APIInstance:
+    async def async_get_api_instance(self, llm_context: llm.LLMContext) -> llm.APIInstance:
         """Build the API instance with current skills as tools."""
         tools = [
             SkillTool(name, skill.description)

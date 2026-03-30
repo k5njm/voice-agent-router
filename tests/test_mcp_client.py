@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
 
-from custom_components.voice_agent_router.mcp.client import MCPClientManager, MCPServerConfig
+from custom_components.voice_agent_router.mcp.client import MCPClientManager
 
 
 @pytest.mark.asyncio
