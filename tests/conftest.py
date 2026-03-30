@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+# Must be first — stubs out HA and heavy deps before any custom_component import.
+from tests import ha_stubs
 
-import pytest
+ha_stubs.install()
 
-from custom_components.voice_agent_router.entity_cache import EntityCache
-from custom_components.voice_agent_router.router.intent_router import IntentRouter
+from unittest.mock import AsyncMock, MagicMock  # noqa: E402
+
+import pytest  # noqa: E402
+
+from custom_components.voice_agent_router.entity_cache import EntityCache  # noqa: E402
+from custom_components.voice_agent_router.router.intent_router import IntentRouter  # noqa: E402
 
 
 @pytest.fixture
@@ -19,7 +24,6 @@ def mock_hass():
     hass.services.async_call = AsyncMock()
     hass.async_create_task = MagicMock()
 
-    # Create mock entity states
     states = []
     for entity_id, friendly_name, state_val, attrs in [
         ("light.kitchen_lights", "Kitchen Lights", "off", {}),
@@ -32,7 +36,7 @@ def mock_hass():
             {
                 "current_temperature": 72,
                 "temperature": 70,
-                "unit_of_measurement": "\u00b0F",
+                "unit_of_measurement": "°F",
             },
         ),
         ("lock.front_door", "Front Door Lock", "locked", {}),
@@ -42,9 +46,7 @@ def mock_hass():
             "sensor.outdoor_temp",
             "Outdoor Temperature",
             "65",
-            {
-                "unit_of_measurement": "\u00b0F",
-            },
+            {"unit_of_measurement": "°F"},
         ),
         ("binary_sensor.back_door", "Back Door", "on", {}),
     ]:
@@ -62,7 +64,6 @@ def mock_hass():
 async def entity_cache(mock_hass):
     """Create and set up an entity cache with mock data."""
     cache = EntityCache(mock_hass)
-    # Directly call refresh without setting up the timer
     await cache.async_refresh()
     return cache
 
