@@ -56,7 +56,9 @@ jobs:
           p.write_text(json.dumps(m, indent=2) + "\n")
           print(m["version"])
           EOF
-      - name: Commit and tag
+      - name: Commit, tag, and release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION=$(python3 -c "import json; print(json.load(open('custom_components/voice_agent_router/manifest.json'))['version'])")
           git config user.name "github-actions[bot]"
@@ -69,3 +71,4 @@ jobs:
           fi
           git tag "v$VERSION"
           git push origin main "v$VERSION"
+          gh release create "v$VERSION" --generate-notes --title "v$VERSION"
