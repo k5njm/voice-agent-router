@@ -76,11 +76,11 @@ tests/ha_stubs.py     — sys.modules stubs replacing full HA install for unit t
 ## Error Reporting (Sentry)
 
 Opt-in via "Send Bug Reports" toggle in integration options. Off by default — zero telemetry
-unless the user explicitly enables it. DSN is read from `SENTRY_DSN` env var (preferred) or
-the `sentry_dsn` config option. `sentry-sdk` is included in `manifest.json` requirements.
+unless the user explicitly enables it. DSN is hardcoded in `const.py` (public ingest endpoint).
+`sentry-sdk` is included in `manifest.json` requirements.
 
 - Sentry org: `nick-mccarthy`
 - Sentry project: `voice-agent-router` (platform: python)
-- DSN: via `SENTRY_DSN` env var or config option (not hardcoded in source)
+- DSN: hardcoded in `const.py` (Sentry DSNs are public by design)
 - GitHub integration: connect at https://nick-mccarthy.sentry.io/settings/integrations/github/
   to enable suspect commits, stack trace links, and auto issue creation

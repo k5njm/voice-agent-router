@@ -11,7 +11,7 @@ CONF_ENABLE_LOCAL_ROUTER = "enable_local_router"
 CONF_LLM_HASS_API = "llm_hass_api"
 CONF_SEND_BUG_REPORTS = "send_bug_reports"
 
-CONF_SENTRY_DSN = "sentry_dsn"
+SENTRY_DSN = "https://6f0479f25c912b6c2e9e9d41772935e3@o4511130727088128.ingest.us.sentry.io/4511130768834560"
 
 DEFAULT_MODEL = "anthropic/claude-sonnet-4-20250514"
 DEFAULT_TEMPERATURE = 0.7

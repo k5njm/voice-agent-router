@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import logging
-import os
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_SEND_BUG_REPORTS, CONF_SENTRY_DSN, DOMAIN
+from .const import CONF_SEND_BUG_REPORTS, DOMAIN, SENTRY_DSN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,12 +22,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Optional Sentry error reporting (off by default)
     send_reports = entry.options.get(CONF_SEND_BUG_REPORTS, False)
-    sentry_dsn = os.environ.get("SENTRY_DSN") or entry.options.get(CONF_SENTRY_DSN, "")
-    if send_reports and sentry_dsn:
+    if send_reports and SENTRY_DSN:
         try:
             import sentry_sdk
 
-            sentry_sdk.init(dsn=sentry_dsn, traces_sample_rate=0.0)
+            sentry_sdk.init(dsn=SENTRY_DSN, traces_sample_rate=0.0)
             _LOGGER.info("Sentry error reporting enabled")
         except Exception:
             _LOGGER.exception("Failed to initialize Sentry")
