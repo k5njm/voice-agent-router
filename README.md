@@ -99,23 +99,63 @@ Skills with `requires_llm: false` return the `response_template` directly. Skill
 
 ## Development
 
+### Setup
+
 ```bash
-# Clone the repository
 git clone https://github.com/k5njm/voice-agent-router.git
 cd voice-agent-router
 
-# Install in editable mode with test dependencies
-pip install -e .
-pip install pytest pytest-asyncio pyyaml
+# Create a venv and install test dependencies
+python3.12 -m venv .venv
+.venv/bin/pip install pytest pytest-asyncio pyyaml
 
-# Run the test suite
-pytest tests/ -v
-
-# Lint and format
-pip install ruff
-ruff check custom_components/
-ruff format custom_components/
+# Install pre-commit hooks (runs ruff + pytest before every commit)
+pip install pre-commit
+pre-commit install
 ```
+
+### Running tests
+
+```bash
+PYTHONPATH=. .venv/bin/pytest tests/ -v
+```
+
+Tests use lightweight stubs for Home Assistant modules (`tests/ha_stubs.py`) so no HA installation is required.
+
+### Linting
+
+```bash
+# Check and auto-fix
+ruff check --fix custom_components/
+ruff format custom_components/
+
+# Or via pre-commit (runs on all files)
+pre-commit run --all-files
+```
+
+Pre-commit runs automatically on `git commit`: trailing whitespace, YAML/JSON validation, ruff lint+format, and the full test suite. A failing test blocks the commit.
+
+## CI/CD
+
+### CI (`ci.yml`)
+
+Runs on every push and pull request to `main`:
+
+| Job | What it does |
+|-----|-------------|
+| `lint` | `ruff check` + `ruff format --check` on `custom_components/` |
+| `test` | `pytest tests/ -v` on Python 3.12 with `PYTHONPATH` set |
+
+### Releases (`release.yml`)
+
+Push a version tag to create a GitHub Release with auto-generated notes:
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+GitHub Actions picks up the tag, runs `softprops/action-gh-release`, and publishes the release. HACS users will see the new version automatically.
 
 ## License
 
