@@ -24,9 +24,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     send_reports = entry.options.get(CONF_SEND_BUG_REPORTS, False)
     if send_reports and SENTRY_DSN:
         try:
-            import sentry_sdk
 
-            sentry_sdk.init(dsn=SENTRY_DSN, traces_sample_rate=0.0)
+            def _init_sentry() -> None:
+                import sentry_sdk
+
+                sentry_sdk.init(dsn=SENTRY_DSN, traces_sample_rate=0.0)
+
+            await hass.async_add_executor_job(_init_sentry)
             _LOGGER.info("Sentry error reporting enabled")
         except Exception:
             _LOGGER.exception("Failed to initialize Sentry")
