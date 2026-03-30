@@ -73,10 +73,20 @@ _ha_helpers_llm.APIInstance = _FakeAPIInstance
 _ha_helpers_llm.ToolInput = MagicMock()
 _ha_helpers_llm.LLMContext = MagicMock()
 
-# conversation component stubs
+
+# conversation component stubs — use distinct classes to avoid
+# "duplicate base class" TypeError when both resolve to `object`
+class _ConversationEntity:
+    """Stub base for ConversationEntity."""
+
+
+class _AbstractConversationAgent:
+    """Stub base for AbstractConversationAgent."""
+
+
 _ha_conv = MagicMock()
-_ha_conv.ConversationEntity = object
-_ha_conv.AbstractConversationAgent = object
+_ha_conv.ConversationEntity = _ConversationEntity
+_ha_conv.AbstractConversationAgent = _AbstractConversationAgent
 _ha_conv.ConversationEntityFeature = MagicMock()
 
 
