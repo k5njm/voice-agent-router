@@ -1,7 +1,7 @@
 {
   "domain": "voice_agent_router",
   "name": "Voice Agent Router",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "documentation": "https://github.com/k5njm/voice-agent-router",
   "issue_tracker": "https://github.com/k5njm/voice-agent-router/issues",
   "dependencies": [
