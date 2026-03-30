@@ -47,11 +47,15 @@ class SkillsAPI(llm.API):
 
     async def async_get_api_instance(self, llm_context: llm.LLMContext) -> llm.APIInstance:
         """Build the API instance with current skills as tools."""
-        tools = [
-            SkillTool(name, skill.description)
-            for name, skill in self._loader.skills.items()
-            if skill.requires_llm
-        ]
+        try:
+            tools = [
+                SkillTool(name, skill.description)
+                for name, skill in self._loader.skills.items()
+                if skill.requires_llm
+            ]
+        except Exception:
+            _LOGGER.exception("Failed to build skill tools; returning empty tool list")
+            tools = []
 
         return llm.APIInstance(
             api=self,

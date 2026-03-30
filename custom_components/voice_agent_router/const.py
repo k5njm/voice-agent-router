@@ -9,6 +9,7 @@ CONF_TEMPERATURE = "temperature"
 CONF_MAX_TOOL_ITERATIONS = "max_tool_iterations"
 CONF_ENABLE_LOCAL_ROUTER = "enable_local_router"
 CONF_LLM_HASS_API = "llm_hass_api"
+CONF_SENTRY_DSN = "sentry_dsn"
 
 DEFAULT_MODEL = "anthropic/claude-sonnet-4-20250514"
 DEFAULT_TEMPERATURE = 0.7

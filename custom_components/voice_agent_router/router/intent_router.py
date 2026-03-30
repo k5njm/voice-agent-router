@@ -42,7 +42,12 @@ class IntentRouter:
         cleaned = text.strip().lower()
 
         for pattern_name, regex, handler_name in INTENT_PATTERNS:
-            match = regex.fullmatch(cleaned)
+            try:
+                match = regex.fullmatch(cleaned)
+            except re.error:
+                _LOGGER.exception("Regex error in pattern '%s'", pattern_name)
+                continue
+
             if match is None:
                 continue
 
@@ -53,7 +58,17 @@ class IntentRouter:
                 _LOGGER.warning("No handler '%s' for pattern '%s'", handler_name, pattern_name)
                 continue
 
-            action = handler(match, cleaned)
+            try:
+                action = handler(match, cleaned)
+            except Exception:
+                _LOGGER.exception(
+                    "Handler '%s' raised for pattern '%s' (text='%s')",
+                    handler_name,
+                    pattern_name,
+                    cleaned,
+                )
+                continue
+
             if action is not None:
                 return action
 
@@ -91,7 +106,11 @@ class IntentRouter:
 
     def _handle_brightness(self, match: re.Match[str], text: str) -> LocalAction | None:
         entity_name = match.group("entity").strip()
-        value = int(match.group("value"))
+        try:
+            value = int(match.group("value"))
+        except (ValueError, TypeError):
+            _LOGGER.warning("Invalid brightness value in: '%s'", text)
+            return None
         entity_id = self._cache.resolve_name(entity_name)
         if entity_id is None:
             return None
@@ -106,7 +125,11 @@ class IntentRouter:
         )
 
     def _handle_temperature(self, match: re.Match[str], text: str) -> LocalAction | None:
-        value = int(match.group("value"))
+        try:
+            value = int(match.group("value"))
+        except (ValueError, TypeError):
+            _LOGGER.warning("Invalid temperature value in: '%s'", text)
+            return None
         # Temperature commands typically target *the* thermostat; try to resolve
         entity_id = self._cache.resolve_name("thermostat")
         if entity_id is None:

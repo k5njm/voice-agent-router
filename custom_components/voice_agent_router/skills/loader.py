@@ -43,22 +43,51 @@ class SkillLoader:
             try:
                 skill = self._parse_skill(path)
                 self._skills[skill.name] = skill
-                _LOGGER.debug("Loaded skill: %s", skill.name)
+                _LOGGER.debug("Loaded skill: %s from %s", skill.name, path)
+            except yaml.YAMLError:
+                _LOGGER.exception("Malformed YAML in skill file, skipping: %s", path)
+            except (ValueError, KeyError):
+                _LOGGER.exception("Invalid skill definition, skipping: %s", path)
             except Exception:
-                _LOGGER.exception("Failed to load skill: %s", path)
+                _LOGGER.exception("Unexpected error loading skill, skipping: %s", path)
 
         _LOGGER.info("Loaded %d skills", len(self._skills))
 
     def _parse_skill(self, path: Path) -> SkillDefinition:
-        """Parse a single YAML skill file."""
+        """Parse a single YAML skill file.
+
+        Raises on malformed YAML or missing required fields so the caller
+        can log and skip.
+        """
         with open(path) as f:
             data = yaml.safe_load(f)
 
+        if not isinstance(data, dict):
+            raise ValueError(f"Expected a YAML mapping, got {type(data).__name__}")
+
+        if "name" not in data:
+            raise ValueError("Skill file is missing required 'name' field")
+
         trigger = data.get("trigger", {})
+        if not isinstance(trigger, dict):
+            _LOGGER.warning(
+                "Skill '%s' has invalid trigger format (expected mapping), treating as no patterns",
+                data["name"],
+            )
+            trigger = {}
+
+        patterns_raw = trigger.get("patterns", [])
+        if not isinstance(patterns_raw, list):
+            _LOGGER.warning(
+                "Skill '%s' has non-list trigger patterns, treating as empty",
+                data["name"],
+            )
+            patterns_raw = []
+
         return SkillDefinition(
             name=data["name"],
             description=data.get("description", ""),
-            trigger_patterns=[p.lower() for p in trigger.get("patterns", [])],
+            trigger_patterns=[str(p).lower() for p in patterns_raw],
             requires_llm=data.get("requires_llm", False),
             system_prompt=data.get("system_prompt", ""),
             response_template=data.get("response_template", ""),

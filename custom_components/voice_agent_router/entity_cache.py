@@ -31,7 +31,13 @@ class EntityCache:
 
     async def async_setup(self) -> None:
         """Load entities and start periodic refresh."""
-        await self.async_refresh()
+        try:
+            await self.async_refresh()
+        except Exception:
+            _LOGGER.exception(
+                "Initial entity cache refresh failed; cache will be empty "
+                "until the next periodic refresh"
+            )
         self._unsub_refresh = async_track_time_interval(
             self.hass, self._handle_refresh, REFRESH_INTERVAL
         )
@@ -42,12 +48,25 @@ class EntityCache:
         self.hass.async_create_task(self.async_refresh())
 
     async def async_refresh(self) -> None:
-        """Reload all entity states from Home Assistant."""
+        """Reload all entity states from Home Assistant.
+
+        On failure, the stale cache is preserved so callers can continue
+        operating with slightly outdated data.
+        """
+        try:
+            all_states = self.hass.states.async_all()
+        except Exception:
+            _LOGGER.exception(
+                "Failed to fetch entity states from HA; keeping stale cache (%d entities)",
+                len(self._entities),
+            )
+            return
+
         self._entities.clear()
         self._name_tokens.clear()
         self._token_index.clear()
 
-        for state in self.hass.states.async_all():
+        for state in all_states:
             self._entities[state.entity_id] = state
             tokens = self._extract_tokens(state)
             self._name_tokens[state.entity_id] = tokens

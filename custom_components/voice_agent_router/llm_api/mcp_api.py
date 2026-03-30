@@ -27,6 +27,12 @@ class MCPAPI(llm.API):
 
     async def async_get_api_instance(self, llm_context: llm.LLMContext) -> llm.APIInstance:
         """Build the API instance with all connected MCP tools."""
+        try:
+            tools = self._manager.get_tools()
+        except Exception:
+            _LOGGER.exception("Failed to retrieve MCP tools; returning empty tool list")
+            tools = []
+
         return llm.APIInstance(
             api=self,
             api_prompt=(
@@ -34,5 +40,5 @@ class MCPAPI(llm.API):
                 "Use them when the user's request matches their capabilities."
             ),
             llm_context=llm_context,
-            tools=self._manager.get_tools(),
+            tools=tools,
         )

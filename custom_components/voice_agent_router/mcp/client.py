@@ -51,17 +51,41 @@ class MCPClientManager:
             env=config.env,
         )
 
-        transport = stdio_client(params)
-        read_stream, write_stream = await transport.__aenter__()
-        self._transports[config.name] = transport
+        transport = None
+        session = None
+        try:
+            transport = stdio_client(params)
+            read_stream, write_stream = await transport.__aenter__()
+            self._transports[config.name] = transport
 
-        session = ClientSession(read_stream, write_stream)
-        await session.__aenter__()
-        self._sessions[config.name] = session
+            session = ClientSession(read_stream, write_stream)
+            await session.__aenter__()
+            self._sessions[config.name] = session
 
-        # Initialize and discover tools
-        await session.initialize()
-        tools_result = await session.list_tools()
+            # Initialize and discover tools
+            await session.initialize()
+            tools_result = await session.list_tools()
+        except FileNotFoundError:
+            _LOGGER.error(
+                "MCP server '%s' command not found: %s",
+                config.name,
+                config.command,
+            )
+            await self._cleanup_failed_server(config.name, session, transport)
+            raise
+        except OSError as err:
+            _LOGGER.error(
+                "Failed to spawn MCP server '%s' (command=%s): %s",
+                config.name,
+                config.command,
+                err,
+            )
+            await self._cleanup_failed_server(config.name, session, transport)
+            raise
+        except Exception:
+            _LOGGER.exception("Unexpected error connecting to MCP server '%s'", config.name)
+            await self._cleanup_failed_server(config.name, session, transport)
+            raise
 
         for tool in tools_result.tools:
             namespaced = f"mcp_{config.name}_{tool.name}"
@@ -73,6 +97,23 @@ class MCPClientManager:
             config.name,
             len(tools_result.tools),
         )
+
+    async def _cleanup_failed_server(
+        self, name: str, session: object | None, transport: object | None
+    ) -> None:
+        """Clean up partially-initialized server resources on connection failure."""
+        if session is not None:
+            try:
+                await session.__aexit__(None, None, None)
+            except Exception:
+                _LOGGER.debug("Error closing failed MCP session: %s", name)
+            self._sessions.pop(name, None)
+        if transport is not None:
+            try:
+                await transport.__aexit__(None, None, None)
+            except Exception:
+                _LOGGER.debug("Error closing failed MCP transport: %s", name)
+            self._transports.pop(name, None)
 
     def get_tools(self) -> list[llm.Tool]:
         """Return all MCP tools wrapped as HA LLM Tool objects."""
@@ -92,13 +133,36 @@ class MCPClientManager:
         """Execute a tool on the specified MCP server."""
         session = self._sessions.get(server_name)
         if session is None:
+            _LOGGER.error(
+                "MCP tool call failed: server '%s' not connected (tool=%s)",
+                server_name,
+                tool_name,
+            )
             raise ValueError(f"MCP server '{server_name}' not connected")
 
-        result = await session.call_tool(tool_name, arguments=args)
+        try:
+            result = await session.call_tool(tool_name, arguments=args)
+        except Exception:
+            _LOGGER.exception(
+                "MCP tool execution failed (server=%s, tool=%s)",
+                server_name,
+                tool_name,
+            )
+            raise
+
         # Extract text content from result
-        if result.content:
-            texts = [c.text for c in result.content if hasattr(c, "text")]
-            return {"result": "\n".join(texts)} if texts else {"result": str(result.content)}
+        try:
+            if result.content:
+                texts = [c.text for c in result.content if hasattr(c, "text")]
+                return {"result": "\n".join(texts)} if texts else {"result": str(result.content)}
+        except (AttributeError, TypeError):
+            _LOGGER.warning(
+                "Unexpected MCP result format from server '%s' tool '%s': %s",
+                server_name,
+                tool_name,
+                type(result),
+            )
+            return {"result": str(result)}
         return {"result": "OK"}
 
     async def async_stop(self) -> None:

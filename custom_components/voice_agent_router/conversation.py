@@ -41,7 +41,10 @@ async def async_setup_entry(
 ) -> None:
     """Set up the conversation entity."""
     cache = EntityCache(hass)
-    await cache.async_setup()
+    try:
+        await cache.async_setup()
+    except Exception:
+        _LOGGER.exception("Entity cache setup failed; continuing with empty cache")
     hass.data[DOMAIN][config_entry.entry_id]["entity_cache"] = cache
 
     async_add_entities([VoiceAgentRouterConversationEntity(config_entry, cache)])
@@ -92,9 +95,13 @@ class VoiceAgentRouterConversationEntity(
         # Try local fast-path routing
         enable_local = self._config_entry.options.get(CONF_ENABLE_LOCAL_ROUTER, True)
         if enable_local:
-            action = await self._intent_router.route(text)
-            if action is not None:
-                return await self._execute_local(user_input, action, chat_log)
+            try:
+                action = await self._intent_router.route(text)
+                if action is not None:
+                    return await self._execute_local(user_input, action, chat_log)
+            except Exception:
+                _LOGGER.exception("Local intent router failed for text: '%s'", text)
+                # Fall through to cloud LLM
 
         # Cloud LLM fallback via OpenRouter
         _LOGGER.debug("No local match for '%s', falling back to cloud LLM", text)
@@ -108,6 +115,12 @@ class VoiceAgentRouterConversationEntity(
             )
         except conversation.ConverseError as err:
             return err.as_conversation_result()
+        except Exception:
+            _LOGGER.exception("Failed to provide LLM data for chat log")
+            return _error_result(
+                user_input,
+                "Sorry, I encountered an internal error setting up the assistant.",
+            )
 
         try:
             await self._async_handle_chat_log(chat_log)
@@ -117,11 +130,35 @@ class VoiceAgentRouterConversationEntity(
                 user_input,
                 "Sorry, the cloud LLM authentication failed. Check your API key.",
             )
+        except openai.RateLimitError as err:
+            _LOGGER.warning("OpenRouter rate limit hit: %s", err)
+            return _error_result(
+                user_input,
+                "Sorry, the cloud assistant is busy right now. Please try again in a moment.",
+            )
+        except openai.APITimeoutError as err:
+            _LOGGER.warning("OpenRouter request timed out: %s", err)
+            return _error_result(
+                user_input,
+                "Sorry, the cloud assistant took too long to respond. Please try again.",
+            )
+        except openai.APIConnectionError as err:
+            _LOGGER.error("OpenRouter connection error: %s", err)
+            return _error_result(
+                user_input,
+                "Sorry, I couldn't connect to the cloud assistant right now.",
+            )
         except openai.APIError as err:
             _LOGGER.error("OpenRouter API error: %s", err)
             return _error_result(
                 user_input,
                 "Sorry, I couldn't reach the cloud assistant right now.",
+            )
+        except Exception:
+            _LOGGER.exception("Unexpected error during cloud LLM conversation")
+            return _error_result(
+                user_input,
+                "Sorry, something went wrong. Please try again.",
             )
 
         return conversation.async_get_result_from_chat_log(user_input, chat_log)
@@ -131,6 +168,7 @@ class VoiceAgentRouterConversationEntity(
         client = openai.AsyncOpenAI(
             api_key=self._config_entry.data[CONF_API_KEY],
             base_url="https://openrouter.ai/api/v1",
+            timeout=30.0,
         )
 
         model = self._config_entry.options.get(CONF_MODEL, DEFAULT_MODEL)
@@ -160,20 +198,39 @@ class VoiceAgentRouterConversationEntity(
                 temperature=temperature,
             )
 
+            if not response.choices:
+                _LOGGER.warning(
+                    "OpenRouter returned empty choices (model=%s, iteration=%d)",
+                    model,
+                    _iteration + 1,
+                )
+                break
+
             choice = response.choices[0]
             message = choice.message
 
             # Build tool_calls list if the model requested any
             tool_calls_list = None
             if message.tool_calls:
-                tool_calls_list = [
-                    llm.ToolInput(
-                        tool_name=tc.function.name,
-                        tool_args=json.loads(tc.function.arguments),
-                        id=tc.id,
+                tool_calls_list = []
+                for tc in message.tool_calls:
+                    try:
+                        tool_args = json.loads(tc.function.arguments)
+                    except (json.JSONDecodeError, TypeError) as err:
+                        _LOGGER.warning(
+                            "Malformed tool call arguments from LLM (tool=%s, id=%s): %s",
+                            tc.function.name,
+                            tc.id,
+                            err,
+                        )
+                        tool_args = {}
+                    tool_calls_list.append(
+                        llm.ToolInput(
+                            tool_name=tc.function.name,
+                            tool_args=tool_args,
+                            id=tc.id,
+                        )
                     )
-                    for tc in message.tool_calls
-                ]
 
             assistant_content = conversation.AssistantContent(
                 agent_id=self.entity_id,
