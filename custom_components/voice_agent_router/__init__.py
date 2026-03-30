@@ -8,7 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_SENTRY_DSN, DOMAIN
+from .const import CONF_SEND_BUG_REPORTS, DOMAIN, SENTRY_DSN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,12 +21,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {}
 
     # Optional Sentry error reporting (off by default, requires sentry-sdk)
-    sentry_dsn = entry.data.get(CONF_SENTRY_DSN) or entry.options.get(CONF_SENTRY_DSN)
-    if sentry_dsn:
+    send_reports = entry.options.get(CONF_SEND_BUG_REPORTS, False)
+    if send_reports and SENTRY_DSN:
         try:
             import sentry_sdk
 
-            sentry_sdk.init(dsn=sentry_dsn, traces_sample_rate=0.0)
+            sentry_sdk.init(dsn=SENTRY_DSN, traces_sample_rate=0.0)
             _LOGGER.info("Sentry error reporting enabled")
         except ImportError:
             _LOGGER.debug("sentry-sdk not installed, error reporting disabled")

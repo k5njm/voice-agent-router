@@ -27,14 +27,16 @@
           "system_prompt": "System Prompt",
           "temperature": "Temperature",
           "max_tool_iterations": "Max Tool Iterations",
-          "enable_local_router": "Enable Local Router"
+          "enable_local_router": "Enable Local Router",
+          "send_bug_reports": "Send Bug Reports"
         },
         "data_description": {
           "model": "Model identifier to use for routing and responses.",
           "system_prompt": "System prompt sent to the LLM with each conversation turn.",
           "temperature": "Sampling temperature (0.0 - 2.0). Lower is more deterministic.",
           "max_tool_iterations": "Maximum number of tool-call rounds per conversation turn.",
-          "enable_local_router": "Use a local classifier to pre-route simple intents before calling the LLM."
+          "enable_local_router": "Use a local classifier to pre-route simple intents before calling the LLM.",
+          "send_bug_reports": "Send anonymous error reports to help improve the integration. No personal data is collected."
         }
       }
     }

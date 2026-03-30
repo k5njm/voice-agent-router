@@ -72,3 +72,15 @@ tests/ha_stubs.py     — sys.modules stubs replacing full HA install for unit t
 - `router/__init__.py` must re-export `IntentRouter` — `conversation.py` imports from the package
 - `.venv/` is gitignored; contributors must create it manually before pre-commit works
 - Pre-commit pytest hook fails if `.venv` doesn't exist — bootstrap the venv first
+
+## Error Reporting (Sentry)
+
+Opt-in via "Send Bug Reports" toggle in integration options. Off by default — zero telemetry
+unless the user explicitly enables it. DSN is hardcoded in `const.py` (points to maintainer's
+Sentry project). Requires `pip install sentry-sdk` on the HA host (not in `manifest.json`).
+
+- Sentry org: `nick-mccarthy`
+- Sentry project: `voice-agent-router` (platform: python)
+- DSN: hardcoded in `const.py` → `SENTRY_DSN` (fill in from Sentry project settings)
+- GitHub integration: connect at https://nick-mccarthy.sentry.io/settings/integrations/github/
+  to enable suspect commits, stack trace links, and auto issue creation

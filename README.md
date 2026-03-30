@@ -157,6 +157,18 @@ git push origin v0.2.0
 
 GitHub Actions picks up the tag, runs `softprops/action-gh-release`, and publishes the release. HACS users will see the new version automatically.
 
+## Error Reporting (Sentry)
+
+Error reporting is **opt-in and off by default** — the integration sends zero telemetry unless you explicitly enable it.
+
+To enable:
+
+1. Install `sentry-sdk` on your HA host: `pip install sentry-sdk`.
+2. Go to **Settings > Devices & Services > Voice Agent Router > Configure**.
+3. Toggle **Send Bug Reports** on.
+
+When enabled, anonymous error reports are sent to the project maintainer's Sentry instance to help identify and fix bugs. No personal data or entity names are collected.
+
 ## License
 
 This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.

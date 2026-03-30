@@ -14,6 +14,7 @@ from .const import (
     CONF_ENABLE_LOCAL_ROUTER,
     CONF_MAX_TOOL_ITERATIONS,
     CONF_MODEL,
+    CONF_SEND_BUG_REPORTS,
     CONF_SYSTEM_PROMPT,
     CONF_TEMPERATURE,
     DEFAULT_MAX_TOOL_ITERATIONS,
@@ -39,6 +40,7 @@ OPTIONS_SCHEMA = vol.Schema(
             int
         ),
         vol.Optional(CONF_ENABLE_LOCAL_ROUTER, default=True): bool,
+        vol.Optional(CONF_SEND_BUG_REPORTS, default=False): bool,
     }
 )
 
@@ -102,6 +104,10 @@ class VoiceAgentRouterOptionsFlow(OptionsFlow):
                     vol.Optional(
                         CONF_ENABLE_LOCAL_ROUTER,
                         default=current.get(CONF_ENABLE_LOCAL_ROUTER, True),
+                    ): bool,
+                    vol.Optional(
+                        CONF_SEND_BUG_REPORTS,
+                        default=current.get(CONF_SEND_BUG_REPORTS, False),
                     ): bool,
                 }
             ),
