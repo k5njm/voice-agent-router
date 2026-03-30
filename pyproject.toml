@@ -3,7 +3,7 @@ name = "voice-agent-router"
 version = "0.1.0"
 description = "Home Assistant custom integration that routes voice commands to LLM agents with tool support"
 readme = "README.md"
-license = {text = "Apache-2.0"}
+license = "Apache-2.0"
 requires-python = ">=3.12"
 authors = [
     {name = "Nick McCarthy"},
@@ -18,6 +18,10 @@ dev = [
     "pytest-asyncio>=0.24.0",
     "pytest-homeassistant-custom-component>=0.13.0",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["custom_components*"]
 
 [tool.ruff]
 target-version = "py312"

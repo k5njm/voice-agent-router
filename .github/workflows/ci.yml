@@ -29,9 +29,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: |
-          pip install pytest pytest-asyncio pyyaml
-          pip install homeassistant openai mcp voluptuous-openapi
-          pip install -e .
+        run: pip install pytest pytest-asyncio pyyaml openai mcp voluptuous-openapi homeassistant
       - name: Run tests
         run: pytest tests/ -v
+        env:
+          PYTHONPATH: ${{ github.workspace }}
