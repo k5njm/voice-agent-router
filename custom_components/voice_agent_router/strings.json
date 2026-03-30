@@ -5,12 +5,12 @@
         "title": "Voice Agent Router",
         "description": "Configure your LLM-powered voice agent router.",
         "data": {
-          "api_key": "API Key",
+          "api_key": "OpenRouter API Key",
           "model": "Model"
         },
         "data_description": {
-          "api_key": "API key for the LLM provider (e.g., OpenRouter, OpenAI).",
-          "model": "Model identifier to use for routing and responses."
+          "api_key": "API key from openrouter.ai — used for cloud LLM fallback.",
+          "model": "OpenRouter model identifier (e.g., google/gemini-2.5-flash-preview)."
         }
       }
     },

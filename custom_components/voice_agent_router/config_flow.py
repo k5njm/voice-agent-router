@@ -66,14 +66,11 @@ class VoiceAgentRouterConfigFlow(ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry):
         """Get the options flow."""
-        return VoiceAgentRouterOptionsFlow(config_entry)
+        return VoiceAgentRouterOptionsFlow()
 
 
 class VoiceAgentRouterOptionsFlow(OptionsFlow):
     """Handle options for Voice Agent Router."""
-
-    def __init__(self, config_entry) -> None:
-        self.config_entry = config_entry
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Manage the options."""
