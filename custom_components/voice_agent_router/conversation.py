@@ -18,12 +18,15 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     CONF_API_KEY,
+    CONF_ENABLE_FOLLOWUP,
     CONF_ENABLE_LOCAL_ROUTER,
+    CONF_FOLLOWUP_TIMEOUT,
     CONF_MAX_TOOL_ITERATIONS,
     CONF_MODEL,
     CONF_SYSTEM_PROMPT,
     CONF_SYSTEM_PROMPT_PRESET,
     CONF_TEMPERATURE,
+    DEFAULT_FOLLOWUP_TIMEOUT,
     DEFAULT_MAX_TOOL_ITERATIONS,
     DEFAULT_MODEL,
     DEFAULT_SYSTEM_PROMPT,
@@ -34,6 +37,7 @@ from .const import (
     SYSTEM_PROMPT_PRESETS,
 )
 from .entity_cache import EntityCache
+from .followup import FollowupManager, is_conversation_end
 from .perf_log import PerfLogger
 from .router import IntentRouter
 
@@ -69,6 +73,7 @@ class VoiceAgentRouterConversationEntity(
         self._config_entry = config_entry
         self._entity_cache = entity_cache
         self._intent_router = IntentRouter(entity_cache)
+        self._followup = FollowupManager()
         self._attr_unique_id = f"{config_entry.entry_id}_conversation"
         self._perf_log: PerfLogger | None = None
 
@@ -121,6 +126,7 @@ class VoiceAgentRouterConversationEntity(
                         response=action.speech,
                         latency_ms=round((time.monotonic() - t_start) * 1000),
                     )
+                    self._maybe_schedule_followup(text, user_input)
                     return result
             except Exception:
                 _LOGGER.exception("Local intent router failed for text: '%s'", text)
@@ -195,7 +201,27 @@ class VoiceAgentRouterConversationEntity(
             llm_trace=llm_trace,
             latency_ms=round((time.monotonic() - t_start) * 1000),
         )
+        self._maybe_schedule_followup(text, user_input)
         return result
+
+    def _maybe_schedule_followup(
+        self,
+        text: str,
+        user_input: conversation.ConversationInput,
+    ) -> None:
+        """Schedule a satellite re-listen if follow-up is enabled and appropriate."""
+        if not self._get_config(CONF_ENABLE_FOLLOWUP, False):
+            return
+        if is_conversation_end(text):
+            return
+        satellite_id = getattr(user_input, "satellite_id", None)
+        device_id = getattr(user_input, "device_id", None)
+        if not satellite_id and not device_id:
+            return
+        timeout = self._get_config(CONF_FOLLOWUP_TIMEOUT, DEFAULT_FOLLOWUP_TIMEOUT)
+        self.hass.async_create_task(
+            self._followup.trigger_relisten(self.hass, satellite_id, device_id, float(timeout))
+        )
 
     def _write_perf_log(self, **kwargs) -> None:
         if self._perf_log:

@@ -28,7 +28,9 @@
           "system_prompt": "Custom System Prompt",
           "temperature": "Temperature",
           "max_tool_iterations": "Max Tool Iterations",
-          "enable_local_router": "Enable Local Router"
+          "enable_local_router": "Enable Local Router",
+          "enable_followup": "Enable Follow-up Conversations",
+          "followup_timeout": "Follow-up Timeout (seconds)"
         },
         "data_description": {
           "model": "OpenRouter model identifier (e.g., google/gemini-2.5-flash-preview).",
@@ -36,7 +38,9 @@
           "system_prompt": "Only used when preset is set to Custom.",
           "temperature": "Sampling temperature (0.0 - 1.0). Lower is more deterministic.",
           "max_tool_iterations": "Maximum number of tool-call rounds per turn (1-50).",
-          "enable_local_router": "Use regex fast-path to handle simple commands offline before calling the LLM."
+          "enable_local_router": "Use regex fast-path to handle simple commands offline before calling the LLM.",
+          "enable_followup": "After responding, automatically trigger the satellite to listen again for follow-up commands.",
+          "followup_timeout": "How long the satellite waits for a follow-up command before going idle (3-30)."
         }
       }
     }
