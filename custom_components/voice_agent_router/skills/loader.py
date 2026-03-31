@@ -23,6 +23,8 @@ class SkillDefinition:
     response_template: str = ""
     tools: list[str] = field(default_factory=list)
     entities: list[str] = field(default_factory=list)
+    cache_cron: str | None = None
+    cache_ttl: int = 0
 
 
 class SkillLoader:
@@ -84,6 +86,10 @@ class SkillLoader:
             )
             patterns_raw = []
 
+        cache_block = data.get("cache", {})
+        if not isinstance(cache_block, dict):
+            cache_block = {}
+
         return SkillDefinition(
             name=data["name"],
             description=data.get("description", ""),
@@ -93,6 +99,8 @@ class SkillLoader:
             response_template=data.get("response_template", ""),
             tools=data.get("tools", []),
             entities=data.get("entities", []),
+            cache_cron=cache_block.get("cron"),
+            cache_ttl=int(cache_block.get("ttl", 0)),
         )
 
     def match(self, text: str) -> SkillDefinition | None:

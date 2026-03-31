@@ -31,6 +31,9 @@ _ha_const.MATCH_ALL = "*"
 _ha_data_entry_flow = MagicMock()
 _ha_data_entry_flow.FlowResult = object
 
+_ha_exceptions = MagicMock()
+_ha_exceptions.TemplateError = type("TemplateError", (Exception,), {})
+
 _ha_helpers_event = MagicMock()
 _ha_helpers_intent = MagicMock()
 _ha_helpers_template = MagicMock()
@@ -122,6 +125,7 @@ STUBS = {
     "homeassistant.config_entries": _ha_config_entries,
     "homeassistant.const": _ha_const,
     "homeassistant.data_entry_flow": _ha_data_entry_flow,
+    "homeassistant.exceptions": _ha_exceptions,
     "homeassistant.helpers": MagicMock(),
     "homeassistant.helpers.event": _ha_helpers_event,
     "homeassistant.helpers.intent": _ha_helpers_intent,
@@ -154,6 +158,7 @@ def install() -> None:
     sys.modules["homeassistant"].config_entries = sys.modules["homeassistant.config_entries"]
     sys.modules["homeassistant"].const = sys.modules["homeassistant.const"]
     sys.modules["homeassistant"].core = sys.modules["homeassistant.core"]
+    sys.modules["homeassistant"].exceptions = sys.modules["homeassistant.exceptions"]
     sys.modules["homeassistant.helpers"].llm = sys.modules["homeassistant.helpers.llm"]
     sys.modules["homeassistant.helpers"].event = sys.modules["homeassistant.helpers.event"]
     sys.modules["homeassistant.helpers"].intent = sys.modules["homeassistant.helpers.intent"]
