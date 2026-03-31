@@ -22,6 +22,7 @@ from .const import (
     CONF_ENABLE_LOCAL_ROUTER,
     CONF_MAX_TOOL_ITERATIONS,
     CONF_MODEL,
+    CONF_PRIORITY_ENTITIES,
     CONF_SYSTEM_PROMPT,
     CONF_SYSTEM_PROMPT_PRESET,
     CONF_TEMPERATURE,
@@ -224,12 +225,21 @@ class VoiceAgentRouterConversationEntity(
 
         try:
             extra_system = user_input.extra_system_prompt or ""
+
+            # Inject priority entity state snapshot
+            priority_ids_str = self._get_config(CONF_PRIORITY_ENTITIES, "")
+            if priority_ids_str:
+                priority_ids = [eid.strip() for eid in priority_ids_str.split(",") if eid.strip()]
+                snapshot = self._entity_cache.get_priority_snapshot(priority_ids)
+                if snapshot:
+                    extra_system = f"{snapshot}\n\n{extra_system}" if extra_system else snapshot
+
+            # Inject recent action context
             action_context = self._action_cache.format_context()
             if action_context:
-                if extra_system:
-                    extra_system = f"{action_context}\n{extra_system}"
-                else:
-                    extra_system = action_context
+                extra_system = (
+                    f"{action_context}\n{extra_system}" if extra_system else action_context
+                )
 
             await chat_log.async_provide_llm_data(
                 user_input.as_llm_context(DOMAIN),
