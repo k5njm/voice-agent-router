@@ -37,6 +37,8 @@ from .const import (
 from .entity_cache import EntityCache
 from .perf_log import PerfLogger
 from .router import IntentRouter
+from .skills.executor import SkillExecutor
+from .skills.loader import SkillLoader
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,7 +56,9 @@ async def async_setup_entry(
         _LOGGER.exception("Entity cache setup failed; continuing with empty cache")
     hass.data[DOMAIN][config_entry.entry_id]["entity_cache"] = cache
 
-    async_add_entities([VoiceAgentRouterConversationEntity(config_entry, cache)])
+    skill_loader = hass.data[DOMAIN][config_entry.entry_id].get("skill_loader")
+
+    async_add_entities([VoiceAgentRouterConversationEntity(config_entry, cache, skill_loader)])
 
 
 class VoiceAgentRouterConversationEntity(
@@ -66,11 +70,18 @@ class VoiceAgentRouterConversationEntity(
     _attr_has_entity_name = True
     _attr_name = "Voice Agent Router"
 
-    def __init__(self, config_entry: ConfigEntry, entity_cache: EntityCache) -> None:
+    def __init__(
+        self,
+        config_entry: ConfigEntry,
+        entity_cache: EntityCache,
+        skill_loader: SkillLoader | None = None,
+    ) -> None:
         self._config_entry = config_entry
         self._entity_cache = entity_cache
         self._action_cache = ActionCache()
         self._intent_router = IntentRouter(entity_cache, action_cache=self._action_cache)
+        self._skill_loader = skill_loader
+        self._skill_executor: SkillExecutor | None = None
         self._attr_unique_id = f"{config_entry.entry_id}_conversation"
         self._perf_log: PerfLogger | None = None
 
@@ -83,6 +94,7 @@ class VoiceAgentRouterConversationEntity(
         await super().async_added_to_hass()
         conversation.async_set_agent(self.hass, self._config_entry, self)
         self._perf_log = PerfLogger(self.hass.config.config_dir)
+        self._skill_executor = SkillExecutor(self.hass, self._entity_cache)
 
     async def async_will_remove_from_hass(self) -> None:
         """Unregister the conversation agent and tear down cache."""
@@ -139,8 +151,76 @@ class VoiceAgentRouterConversationEntity(
                 _LOGGER.exception("Local intent router failed for text: '%s'", text)
                 # Fall through to cloud LLM
 
+        # Try skill matching before LLM fallback
+        skill_context: dict | None = None
+        if self._skill_loader is not None:
+            try:
+                skill_match = self._skill_loader.match_with_score(text)
+                if skill_match is not None:
+                    skill, score = skill_match
+                    if not skill.requires_llm and self._skill_executor is not None:
+                        # Template skill — execute directly
+                        _LOGGER.debug(
+                            "Skill match '%s' (score=%.2f) for '%s'",
+                            skill.name,
+                            score,
+                            text,
+                        )
+                        response_text = await self._skill_executor.execute_template_skill(skill)
+                        self._write_perf_log(
+                            text=text,
+                            route="skill",
+                            skill_name=skill.name,
+                            skill_score=score,
+                            response=response_text,
+                            latency_ms=round((time.monotonic() - t_start) * 1000),
+                        )
+                        return _speech_result(user_input, response_text)
+                    elif skill.requires_llm:
+                        # LLM-backed skill — inject context into LLM path
+                        _LOGGER.debug(
+                            "LLM skill match '%s' (score=%.2f) for '%s'",
+                            skill.name,
+                            score,
+                            text,
+                        )
+                        skill_context = (
+                            self._skill_executor.get_llm_skill_context(skill)
+                            if self._skill_executor
+                            else None
+                        )
+            except Exception:
+                _LOGGER.exception("Skill matching failed for text: '%s'", text)
+
         # Cloud LLM fallback via OpenRouter
         _LOGGER.debug("No local match for '%s', falling back to cloud LLM", text)
+
+        # Log near-miss skill matches for diagnostics
+        if self._skill_loader is not None:
+            try:
+                near_miss = self._skill_loader.nearest_miss(text)
+                if near_miss is not None:
+                    _LOGGER.info(
+                        "Skill near-miss for '%s': skill='%s' score=%.2f",
+                        text,
+                        near_miss[0],
+                        near_miss[1],
+                    )
+                    self._write_perf_log(
+                        text=text,
+                        route="llm",
+                        skill_near_miss=near_miss[0],
+                        skill_near_miss_score=near_miss[1],
+                    )
+            except Exception:
+                _LOGGER.debug("Near-miss check failed", exc_info=True)
+
+        # Determine system prompt — use skill context if available
+        system_prompt = (
+            skill_context["system_prompt"]
+            if skill_context and skill_context.get("system_prompt")
+            else self._get_system_prompt()
+        )
 
         try:
             extra_system = user_input.extra_system_prompt or ""
@@ -154,7 +234,7 @@ class VoiceAgentRouterConversationEntity(
             await chat_log.async_provide_llm_data(
                 user_input.as_llm_context(DOMAIN),
                 "assist",
-                self._get_system_prompt(),
+                system_prompt,
                 extra_system or None,
             )
         except conversation.ConverseError as err:
