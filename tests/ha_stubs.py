@@ -112,6 +112,8 @@ _ha_conv.ChatLog = MagicMock()
 _ha_entity_platform = MagicMock()
 _ha_entity_platform.AddEntitiesCallback = object
 
+_ha_entity_registry = MagicMock()
+
 _ha_json = MagicMock()
 _ha_json.JsonObjectType = dict
 
@@ -132,6 +134,7 @@ STUBS = {
     "homeassistant.helpers.llm": _ha_helpers_llm,
     "homeassistant.helpers.template": _ha_helpers_template,
     "homeassistant.helpers.entity_platform": _ha_entity_platform,
+    "homeassistant.helpers.entity_registry": _ha_entity_registry,
     "homeassistant.components": MagicMock(),
     "homeassistant.components.conversation": _ha_conv,
     "homeassistant.util": MagicMock(),
@@ -165,6 +168,9 @@ def install() -> None:
     sys.modules["homeassistant.helpers"].template = sys.modules["homeassistant.helpers.template"]
     sys.modules["homeassistant.helpers"].entity_platform = sys.modules[
         "homeassistant.helpers.entity_platform"
+    ]
+    sys.modules["homeassistant.helpers"].entity_registry = sys.modules[
+        "homeassistant.helpers.entity_registry"
     ]
     sys.modules["homeassistant.components"].conversation = sys.modules[
         "homeassistant.components.conversation"

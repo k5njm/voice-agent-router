@@ -12,13 +12,16 @@ from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig
 
 from .const import (
     CONF_API_KEY,
+    CONF_ENABLE_FOLLOWUP,
     CONF_ENABLE_LOCAL_ROUTER,
+    CONF_FOLLOWUP_TIMEOUT,
     CONF_MAX_TOOL_ITERATIONS,
     CONF_MODEL,
     CONF_PRIORITY_ENTITIES,
     CONF_SYSTEM_PROMPT,
     CONF_SYSTEM_PROMPT_PRESET,
     CONF_TEMPERATURE,
+    DEFAULT_FOLLOWUP_TIMEOUT,
     DEFAULT_MAX_TOOL_ITERATIONS,
     DEFAULT_MODEL,
     DEFAULT_SYSTEM_PROMPT,
@@ -46,6 +49,10 @@ OPTIONS_SCHEMA = vol.Schema(
         ),
         vol.Optional(CONF_ENABLE_LOCAL_ROUTER, default=True): bool,
         vol.Optional(CONF_PRIORITY_ENTITIES, default=""): str,
+        vol.Optional(CONF_ENABLE_FOLLOWUP, default=False): bool,
+        vol.Optional(CONF_FOLLOWUP_TIMEOUT, default=DEFAULT_FOLLOWUP_TIMEOUT): vol.All(
+            vol.Coerce(int), vol.Range(min=3, max=30)
+        ),
     }
 )
 
@@ -118,6 +125,13 @@ class VoiceAgentRouterOptionsFlow(OptionsFlow):
                     vol.Optional(
                         CONF_PRIORITY_ENTITIES, default=opt(CONF_PRIORITY_ENTITIES, "")
                     ): str,
+                    vol.Optional(
+                        CONF_ENABLE_FOLLOWUP, default=opt(CONF_ENABLE_FOLLOWUP, False)
+                    ): bool,
+                    vol.Optional(
+                        CONF_FOLLOWUP_TIMEOUT,
+                        default=opt(CONF_FOLLOWUP_TIMEOUT, DEFAULT_FOLLOWUP_TIMEOUT),
+                    ): vol.All(vol.Coerce(int), vol.Range(min=3, max=30)),
                 }
             ),
         )
