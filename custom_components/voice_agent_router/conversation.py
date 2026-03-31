@@ -21,6 +21,7 @@ from .const import (
     CONF_ENABLE_LOCAL_ROUTER,
     CONF_MAX_TOOL_ITERATIONS,
     CONF_MODEL,
+    CONF_PRIORITY_ENTITIES,
     CONF_SYSTEM_PROMPT,
     CONF_SYSTEM_PROMPT_PRESET,
     CONF_TEMPERATURE,
@@ -129,12 +130,21 @@ class VoiceAgentRouterConversationEntity(
         # Cloud LLM fallback via OpenRouter
         _LOGGER.debug("No local match for '%s', falling back to cloud LLM", text)
 
+        # Build priority entity context
+        priority_ids_str = self._get_config(CONF_PRIORITY_ENTITIES, "")
+        extra_prompt = user_input.extra_system_prompt or ""
+        if priority_ids_str:
+            priority_ids = [eid.strip() for eid in priority_ids_str.split(",") if eid.strip()]
+            snapshot = self._entity_cache.get_priority_snapshot(priority_ids)
+            if snapshot:
+                extra_prompt = f"{snapshot}\n\n{extra_prompt}" if extra_prompt else snapshot
+
         try:
             await chat_log.async_provide_llm_data(
                 user_input.as_llm_context(DOMAIN),
                 "assist",
                 self._get_system_prompt(),
-                user_input.extra_system_prompt,
+                extra_prompt or None,
             )
         except conversation.ConverseError as err:
             return err.as_conversation_result()

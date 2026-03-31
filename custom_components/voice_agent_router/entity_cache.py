@@ -134,6 +134,43 @@ class EntityCache:
         prefix = f"{domain}."
         return [s for eid, s in self._entities.items() if eid.startswith(prefix)]
 
+    def get_priority_snapshot(self, entity_ids: list[str]) -> str:
+        """Return compact state summary for priority entities."""
+        parts: list[str] = []
+        for eid in entity_ids:
+            eid = eid.strip()
+            if not eid:
+                continue
+            state = self._entities.get(eid)
+            if state is None:
+                continue
+            friendly = state.attributes.get("friendly_name", eid)
+            val = state.state
+            extras: list[str] = []
+            if eid.startswith("light."):
+                brightness = state.attributes.get("brightness")
+                if brightness is not None:
+                    extras.append(f"brightness:{brightness}")
+            elif eid.startswith("climate."):
+                temp = state.attributes.get("current_temperature") or state.attributes.get(
+                    "temperature"
+                )
+                if temp is not None:
+                    extras.append(f"temp:{temp}")
+            elif eid.startswith("cover."):
+                pos = state.attributes.get("current_position")
+                if pos is not None:
+                    extras.append(f"position:{pos}")
+
+            detail = f"{friendly}={val}"
+            if extras:
+                detail += f"({', '.join(extras)})"
+            parts.append(detail)
+
+        if not parts:
+            return ""
+        return "Current entity states: " + ", ".join(parts)
+
     async def async_teardown(self) -> None:
         """Cancel the periodic refresh timer."""
         if self._unsub_refresh is not None:

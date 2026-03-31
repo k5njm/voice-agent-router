@@ -10,6 +10,7 @@ CONF_MAX_TOOL_ITERATIONS = "max_tool_iterations"
 CONF_ENABLE_LOCAL_ROUTER = "enable_local_router"
 CONF_LLM_HASS_API = "llm_hass_api"
 CONF_SYSTEM_PROMPT_PRESET = "system_prompt_preset"
+CONF_PRIORITY_ENTITIES = "priority_entities"
 
 PRESET_DEFAULT = "default"
 PRESET_GLADOS = "glados"
