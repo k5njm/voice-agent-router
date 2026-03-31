@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 from homeassistant.core import HomeAssistant, State, callback
 from homeassistant.helpers.event import async_track_time_interval
 
+from .entity_aliases import EntityAliasLoader
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -18,16 +20,51 @@ _LOGGER = logging.getLogger(__name__)
 REFRESH_INTERVAL = timedelta(seconds=60)
 MATCH_THRESHOLD = 0.5
 
+# Maps spoken words to HA entity domains for scoring bonus.
+DOMAIN_HINTS: dict[str, str] = {
+    "lamp": "light",
+    "lamps": "light",
+    "light": "light",
+    "lights": "light",
+    "fan": "fan",
+    "fans": "fan",
+    "switch": "switch",
+    "switches": "switch",
+    "lock": "lock",
+    "locks": "lock",
+    "blind": "cover",
+    "blinds": "cover",
+    "shade": "cover",
+    "shades": "cover",
+    "curtain": "cover",
+    "curtains": "cover",
+    "garage": "cover",
+    "thermostat": "climate",
+    "temperature": "climate",
+    "ac": "climate",
+}
+
+# Score adjustments for disambiguation.
+DOMAIN_BONUS = 0.2
+GROUP_BONUS = 0.1
+# Candidates within this margin of the top score are considered "tied".
+TIE_MARGIN = 0.1
+
 
 class EntityCache:
     """Cache of HA entity states with fuzzy name matching."""
 
-    def __init__(self, hass: HomeAssistant) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        alias_loader: EntityAliasLoader | None = None,
+    ) -> None:
         self.hass = hass
         self._entities: dict[str, State] = {}
         self._name_tokens: dict[str, set[str]] = {}
         self._token_index: dict[str, set[str]] = defaultdict(set)
         self._unsub_refresh: Callable[[], None] | None = None
+        self._alias_loader = alias_loader
 
     async def async_setup(self) -> None:
         """Load entities and start periodic refresh."""
@@ -91,18 +128,49 @@ class EntityCache:
             tokens.update(area.lower().replace("_", " ").split())
         return tokens
 
+    @staticmethod
+    def _is_group(entity_id: str, state: State | None) -> bool:
+        """Return True if the entity appears to be a group."""
+        if entity_id.startswith("group."):
+            return True
+        if entity_id.endswith("_group"):
+            return True
+        if entity_id.endswith("_all"):
+            return True
+        if state is not None:
+            attrs = state.attributes
+            # HA groups store member entity_ids in the 'entity_id' attribute.
+            if isinstance(attrs.get("entity_id"), list):
+                return True
+        return False
+
     def resolve_name(self, spoken_name: str) -> str | None:
         """Fuzzy-match a spoken name to an entity_id using token overlap scoring.
 
+        Resolution order:
+        1. Exact alias lookup (if an alias loader is configured).
+        2. Token-overlap scoring with domain hint and group preference bonuses.
+
         Returns the best match above the threshold, or None.
         """
+        # --- Alias shortcut ---
+        if self._alias_loader is not None:
+            alias_match = self._alias_loader.resolve_alias(spoken_name)
+            if alias_match is not None:
+                return alias_match
+
         spoken_tokens = set(spoken_name.lower().split())
         if not spoken_tokens:
             return None
 
-        best_id: str | None = None
-        best_score: float = 0.0
+        # --- Detect domain hint from spoken tokens ---
+        hinted_domain: str | None = None
+        for token in spoken_tokens:
+            if token in DOMAIN_HINTS:
+                hinted_domain = DOMAIN_HINTS[token]
+                break
 
+        # --- Gather candidates via token index ---
         candidates: set[str] = set()
         for token in spoken_tokens:
             candidates.update(self._token_index.get(token, set()))
@@ -110,15 +178,45 @@ class EntityCache:
         if not candidates:
             candidates = set(self._entities)
 
+        # --- Score candidates ---
+        scored: list[tuple[str, float]] = []
         for entity_id in candidates:
             entity_tokens = self._name_tokens.get(entity_id, set())
             if not entity_tokens:
                 continue
             overlap = len(spoken_tokens & entity_tokens)
             max_len = max(len(spoken_tokens), len(entity_tokens))
-            score = overlap / max_len
-            if score > best_score:
-                best_score = score
+            base_score = overlap / max_len
+
+            # Domain hint bonus
+            domain_bonus = 0.0
+            if hinted_domain is not None:
+                entity_domain = entity_id.split(".", 1)[0]
+                if entity_domain == hinted_domain:
+                    domain_bonus = DOMAIN_BONUS
+
+            score = base_score + domain_bonus
+            scored.append((entity_id, score))
+
+        if not scored:
+            return None
+
+        # --- Group preference among tied candidates ---
+        scored.sort(key=lambda x: x[1], reverse=True)
+        top_score = scored[0][1]
+
+        # Candidates within TIE_MARGIN of the top are considered tied.
+        tied = [(eid, s) for eid, s in scored if top_score - s <= TIE_MARGIN]
+
+        best_id: str | None = None
+        best_score: float = 0.0
+        for entity_id, score in tied:
+            final = score
+            state = self._entities.get(entity_id)
+            if len(tied) > 1 and self._is_group(entity_id, state):
+                final += GROUP_BONUS
+            if final > best_score:
+                best_score = final
                 best_id = entity_id
 
         if best_score >= MATCH_THRESHOLD:
