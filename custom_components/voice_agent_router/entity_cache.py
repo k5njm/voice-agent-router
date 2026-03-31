@@ -227,6 +227,13 @@ class EntityCache:
         """Return the cached state for an entity_id."""
         return self._entities.get(entity_id)
 
+    def get_friendly_name(self, entity_id: str) -> str | None:
+        """Return the friendly name for an entity_id, or None."""
+        state = self._entities.get(entity_id)
+        if state is not None:
+            return state.attributes.get("friendly_name")
+        return None
+
     def get_entities_by_domain(self, domain: str) -> list[State]:
         """Return all cached states for a given domain."""
         prefix = f"{domain}."
