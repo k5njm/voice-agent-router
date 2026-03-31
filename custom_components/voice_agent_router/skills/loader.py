@@ -97,11 +97,71 @@ class SkillLoader:
 
     def match(self, text: str) -> SkillDefinition | None:
         """Find a skill whose trigger patterns match the input text."""
+        result = self.match_with_score(text)
+        if result is None:
+            return None
+        return result[0]
+
+    def match_with_score(
+        self, text: str, threshold: float = 0.8
+    ) -> tuple[SkillDefinition, float] | None:
+        """Find a skill matching the input text, returning (skill, score).
+
+        Tries exact substring first (score 1.0), then falls back to
+        token-overlap fuzzy matching above the given threshold.
+        """
         cleaned = text.strip().lower()
+
+        # Fast path: exact substring match
         for skill in self._skills.values():
             for pattern in skill.trigger_patterns:
                 if pattern in cleaned:
-                    return skill
+                    return (skill, 1.0)
+
+        # Fuzzy path: token-overlap scoring
+        input_tokens = set(cleaned.split())
+        best_skill: SkillDefinition | None = None
+        best_score: float = 0.0
+
+        for skill in self._skills.values():
+            for pattern in skill.trigger_patterns:
+                pattern_tokens = set(pattern.split())
+                if not pattern_tokens or not input_tokens:
+                    continue
+                overlap = len(input_tokens & pattern_tokens)
+                score = overlap / max(len(input_tokens), len(pattern_tokens))
+                if score > best_score:
+                    best_score = score
+                    best_skill = skill
+
+        if best_skill is not None and best_score >= threshold:
+            return (best_skill, best_score)
+
+        return None
+
+    def nearest_miss(self, text: str) -> tuple[str, float] | None:
+        """Return the closest skill name and score if between 0.4 and 0.8.
+
+        Used for near-miss logging when the LLM path is taken.
+        """
+        cleaned = text.strip().lower()
+        input_tokens = set(cleaned.split())
+        best_name: str = ""
+        best_score: float = 0.0
+
+        for skill in self._skills.values():
+            for pattern in skill.trigger_patterns:
+                pattern_tokens = set(pattern.split())
+                if not pattern_tokens or not input_tokens:
+                    continue
+                overlap = len(input_tokens & pattern_tokens)
+                score = overlap / max(len(input_tokens), len(pattern_tokens))
+                if score > best_score:
+                    best_score = score
+                    best_name = skill.name
+
+        if 0.4 < best_score < 0.8:
+            return (best_name, best_score)
         return None
 
     @property

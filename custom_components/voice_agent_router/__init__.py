@@ -9,6 +9,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
+from .skills.loader import SkillLoader
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,6 +20,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Voice Agent Router from a config entry."""
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {}
+
+    # Load YAML skills from config_dir/custom_skills/
+    skills_dir = hass.config.config_dir + "/custom_skills"
+    skill_loader = SkillLoader(skills_dir)
+    try:
+        await skill_loader.async_load()
+    except Exception:
+        _LOGGER.exception("Skill loader setup failed; continuing without skills")
+    hass.data[DOMAIN][entry.entry_id]["skill_loader"] = skill_loader
 
     try:
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
