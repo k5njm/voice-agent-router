@@ -16,6 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .action_cache import ActionCache
 from .const import (
     CONF_API_KEY,
     CONF_ENABLE_LOCAL_ROUTER,
@@ -68,7 +69,8 @@ class VoiceAgentRouterConversationEntity(
     def __init__(self, config_entry: ConfigEntry, entity_cache: EntityCache) -> None:
         self._config_entry = config_entry
         self._entity_cache = entity_cache
-        self._intent_router = IntentRouter(entity_cache)
+        self._action_cache = ActionCache()
+        self._intent_router = IntentRouter(entity_cache, action_cache=self._action_cache)
         self._attr_unique_id = f"{config_entry.entry_id}_conversation"
         self._perf_log: PerfLogger | None = None
 
@@ -113,6 +115,17 @@ class VoiceAgentRouterConversationEntity(
                 action = await self._intent_router.route(text)
                 if action is not None:
                     result = await self._execute_local(user_input, action, chat_log)
+                    if action.service != "query":
+                        self._action_cache.record(
+                            entity_id=action.entity_id,
+                            domain=action.domain,
+                            service=action.service,
+                            friendly_name=(
+                                self._entity_cache.get_friendly_name(action.entity_id)
+                                or action.entity_id
+                            ),
+                            conversation_id=user_input.conversation_id,
+                        )
                     self._write_perf_log(
                         text=text,
                         route="local",
@@ -130,11 +143,19 @@ class VoiceAgentRouterConversationEntity(
         _LOGGER.debug("No local match for '%s', falling back to cloud LLM", text)
 
         try:
+            extra_system = user_input.extra_system_prompt or ""
+            action_context = self._action_cache.format_context()
+            if action_context:
+                if extra_system:
+                    extra_system = f"{action_context}\n{extra_system}"
+                else:
+                    extra_system = action_context
+
             await chat_log.async_provide_llm_data(
                 user_input.as_llm_context(DOMAIN),
                 "assist",
                 self._get_system_prompt(),
-                user_input.extra_system_prompt,
+                extra_system or None,
             )
         except conversation.ConverseError as err:
             return err.as_conversation_result()

@@ -5,9 +5,13 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from ..entity_cache import EntityCache
 from .patterns import INTENT_PATTERNS
+
+if TYPE_CHECKING:
+    from ..action_cache import ActionCache
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,8 +30,13 @@ class LocalAction:
 class IntentRouter:
     """Try local regex patterns before falling back to an LLM."""
 
-    def __init__(self, entity_cache: EntityCache) -> None:
+    def __init__(
+        self,
+        entity_cache: EntityCache,
+        action_cache: ActionCache | None = None,
+    ) -> None:
         self._cache = entity_cache
+        self._action_cache = action_cache
 
     # ------------------------------------------------------------------
     # Public API
@@ -84,7 +93,7 @@ class IntentRouter:
 
     def _handle_on_off(self, match: re.Match[str], text: str) -> LocalAction | None:
         entity_name = match.group("entity").strip()
-        entity_id = self._cache.resolve_name(entity_name)
+        entity_id = self._resolve_with_fallback(entity_name, text)
         if entity_id is None:
             return None
 
@@ -115,7 +124,7 @@ class IntentRouter:
         except (ValueError, TypeError):
             _LOGGER.warning("Invalid brightness value in: '%s'", text)
             return None
-        entity_id = self._cache.resolve_name(entity_name)
+        entity_id = self._resolve_with_fallback(entity_name, text)
         if entity_id is None:
             return None
 
@@ -152,7 +161,7 @@ class IntentRouter:
     def _handle_lock(self, match: re.Match[str], text: str) -> LocalAction | None:
         action = match.group("action").lower()
         entity_name = match.group("entity").strip()
-        entity_id = self._cache.resolve_name(entity_name)
+        entity_id = self._resolve_with_fallback(entity_name, text)
         if entity_id is None:
             return None
 
@@ -170,7 +179,7 @@ class IntentRouter:
     def _handle_cover(self, match: re.Match[str], text: str) -> LocalAction | None:
         action = match.group("action").lower()
         entity_name = match.group("entity").strip()
-        entity_id = self._cache.resolve_name(entity_name)
+        entity_id = self._resolve_with_fallback(entity_name, text)
         if entity_id is None:
             return None
 
@@ -191,6 +200,8 @@ class IntentRouter:
         if entity_id is None:
             # Try with "scene" appended for better matching
             entity_id = self._cache.resolve_name(f"{scene_name} scene")
+        if entity_id is None and self._action_cache is not None:
+            entity_id = self._action_cache.resolve_reference(text)
         if entity_id is None:
             return None
 
@@ -204,7 +215,7 @@ class IntentRouter:
 
     def _handle_state_query(self, match: re.Match[str], text: str) -> LocalAction | None:
         entity_name = match.group("entity").strip()
-        entity_id = self._cache.resolve_name(entity_name)
+        entity_id = self._resolve_with_fallback(entity_name, text)
         if entity_id is None:
             return None
 
@@ -227,6 +238,15 @@ class IntentRouter:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _resolve_with_fallback(self, entity_name: str, text: str) -> str | None:
+        """Resolve a spoken name, falling back to action cache for pronoun references."""
+        entity_id = self._cache.resolve_name(entity_name)
+        if entity_id is not None:
+            return entity_id
+        if self._action_cache is not None:
+            return self._action_cache.resolve_reference(text)
+        return None
 
     def _friendly(self, entity_id: str, fallback: str) -> str:
         """Return the entity's friendly name, falling back to the spoken name."""
